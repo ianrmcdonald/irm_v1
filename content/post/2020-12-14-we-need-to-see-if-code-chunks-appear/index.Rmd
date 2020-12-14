@@ -1,0 +1,19 @@
+---
+title: We need to see if  code chunks appear
+author: Ian McDonald
+date: '2020-12-14'
+slug: []
+categories: []
+tags: []
+description: ''
+thumbnail: ''
+---
+
+Let's really hope the code chunk appears
+
+```{r}
+print("Hello World")
+
+5 * c(1:5)
+```
+
