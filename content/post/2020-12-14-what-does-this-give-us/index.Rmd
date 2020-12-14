@@ -1,0 +1,218 @@
+---
+title: What does this give us?
+author: Ian McDonald
+date: '2020-12-14'
+slug: []
+categories: []
+tags: []
+description: ''
+thumbnail: ''
+---
+
+## Overview
+
+A number of public datasets provide electoral data by county, city, and township, and the US Census provides some electoral data in a standardized format (see <http://openelections.net> and [https://libguides.princeton.edu/elections).](https://libguides.princeton.edu/elections).) Standardized precinct level data are usually piecemeal and rudimentary.
+
+The Open Elections data project (offered by the public interest journalism group ProPublica) recently asked for volunteers to organize Michigan precinct data, which the 83 counties are gradually releasing. Often, results are published on pdf's and require a painstaking process using screen capture tools like Tabula. Rarely, precinct data can be downloaded as compiled datasets. Washtenaw County, which includes the city of Ann Arbor and the University of Michigan, publishes HTML reports. Washtenaw has 150 precincts and held elections for 160+ offices throughout the county.
+
+The R code shown here uses the rvest screen scraping package to download data from the HTML tables, and then creates a map of the electoral results using the sf and tmap packages. I use an interactive version of tmap which borrows from the Leaflet mapping tool.
+
+This notebook summarizes the code and publishes the interactive map. Its purpose is to show a minimal implementation and demonstrate how I might change or develop tools that scrape and map.
+
+[Washtenaw Coiuonty Elections: November 3, 2020](https://electionresults.ewashtenaw.org/electionreporting/nov2020/index.jsp)
+
+## Load the packages
+
+Notice that I have chosen to load the tidyverse package last. Sometimes, the dplyr version of select is masked by one of these packages. I generally prefer to avoid naming the package unless necessary.
+
+```{r Install libraries, message=FALSE, warning=FALSE, include=FALSE}
+library(rvest)
+library(gdata)
+
+library(sf)
+library(spData)
+library(spDataLarge)
+library(rgdal)
+library(raster)
+
+library(tmap)    # for static and interactive maps
+library(leaflet) # for interactive maps
+
+library(tidyverse)
+```
+
+## Assign values to a few global variables
+
+OFFICES\_NUMBER defines the number of the last of the 176 elections to extract, including 162 offices and 14 ballot measure. In this election, only the first 10 elections extracted involve the presidency, or members at the US Congress or state legislature. In this case, all of them are elective offices. There are approximately 160 offices in total if we include all local offices. In the code shown below, this value is set to 10. OFFICES\_TO\_EXTRACT gives a vector of these office numbers.
+
+DATA\_STARTING\_ELEMENT gives the first element of the data object which includes data we care about. The first few lines just contain header information the "td" object includes. There may be a better html chunk; I used Selector Gadget to isolate the pieces of interest.
+
+```{r Assign some global variables}
+OFFICES_NUMBER = 3  
+
+OFFICES_TO_EXTRACT <- c(1:OFFICES_NUMBER) 
+
+DATA_STARTING_ELEMENT <- 19  
+
+OFFICE_TO_USE = 2    #2 is the presidential race
+```
+
+## Build a function that extracts the data
+
+Each office's page includes three ingredients of interest: a header with the name of the office, a list of the candidates (plus a couple of miscellaneous ballot outcomes), and the voting data by precinct. The function from\_washtenaw reads the html page from the Washtenaw County website and returns a list of three character vectors.
+
+Note that the vote data is returned as a single column. Ultimately, data table should include three variables: precinct, candidate, and votes.
+
+I iterate the function using map from purrr, and "list" is the desired data type.
+
+```{r build from_washtenaw function}
+
+from_washtenaw <- function(office_num) {
+  
+  page_name <- str_c(
+    "https://electionresults.ewashtenaw.org/electionreporting/nov2020/canvassreport",
+    office_num,
+    ".html"
+    )
+  
+  content <- read_html(page_name)
+  
+  office <-  content %>% 
+    html_nodes(".h2") %>% 
+    html_text() %>% 
+    gdata::trim(.)
+  
+  
+  header <-  content %>% 
+    html_nodes("th") %>% 
+    html_text() %>% 
+    gdata::trim(.)
+  
+  
+  data <-  content %>% 
+    html_nodes("td") %>% 
+    html_text() %>% 
+    gdata::trim(.)
+  
+  return(list(office, header, data))
+}
+
+washtenaw_extracts <- map(OFFICES_TO_EXTRACT, from_washtenaw)
+```
+
+## Create three separate vectors
+
+Here, we'll generate three string vectors from list returned by washtenaw\_extracts.
+
+```{r generate three extracts}
+
+
+get_office <- function(i) washtenaw_extracts[[i]][[1]]
+get_head   <- function(i) washtenaw_extracts[[i]][[2]]
+get_data   <- function(i) washtenaw_extracts[[i]][[3]]
+
+office <- get_office(OFFICE_TO_USE)
+votes_head <- get_head(OFFICE_TO_USE)
+votes_data <- get_data(OFFICE_TO_USE)
+
+```
+
+```{r build the votes_data table}
+num_votes_variables <- length(votes_head)
+votes_data <- votes_data[DATA_STARTING_ELEMENT:length(votes_data)]
+
+votes_data_totals <- votes_data[(length(votes_data) - num_votes_variables + 1):(length(votes_data))]
+
+votes_data <- votes_data[1:(length(votes_data) - num_votes_variables)]
+
+votes_data <- enframe(votes_data)
+votes_data <- votes_data %>% mutate(rownum = 
+                     case_when( 
+                       name %% num_votes_variables == 0 ~ num_votes_variables,
+                       TRUE ~ name %% num_votes_variables)
+) 
+
+```
+
+```{r refine and tidy the votes_data table}
+
+number_of_precincts <- (nrow(votes_data)) / (length(votes_head))
+
+votes_data <- votes_data %>% mutate(votes = suppressWarnings(as.numeric(value))) %>% 
+  mutate(nam2 = ifelse(name %% num_votes_variables == 1, value, NA)) %>%
+  fill(nam2) %>%
+  filter(rownum >= 2) %>% 
+  dplyr::select(nam2, votes) %>% 
+  rename(name = nam2) %>%
+  mutate(candidate = rep(votes_head[2:length(votes_head)], number_of_precincts)) %>%
+  rename(precinct = name) %>% 
+  relocate(precinct, candidate, votes)
+  #/Users/irm16/Dropbox/Blogdown Sites/irm_v1/R/Voting_Precinct
+  #generate maps
+```
+
+```{r build the map layers:  hardcoded for presidential race}
+h <- st_read("/Users/irm16/Dropbox/Blogdown Sites/irm_v1/R/Voting_Precinct/VotingPrecinct.shp")
+
+
+#specifically for president.  Compute percentages of two party vote
+
+two_candidates <- votes_head[2:3]
+
+pvotes <- votes_data %>% 
+  filter(candidate %in% two_candidates) %>% 
+  mutate(candidate = replace(candidate, str_detect(candidate, "(DEM)"), "Biden_D")) %>%
+  mutate(candidate = replace(candidate, str_detect(candidate, "(REP)"), "Trump_R")) %>% 
+  pivot_wider(id_cols = precinct, names_from = candidate, values_from = votes) %>% 
+  mutate(vpct = Biden_D/(Biden_D + Trump_R)) %>% 
+  mutate(pwinner = ifelse(vpct >=.5, "Biden", "Trump")) %>% 
+  mutate(pct_lbl = ifelse(pwinner == "Biden", str_c(pwinner, " ", format(vpct*100, digits = 3)), str_c(pwinner, " ", format(100 - vpct*100, digits = 2)))) %>% 
+  mutate(hover = str_c(precinct, ": ", pct_lbl)) %>% 
+  dplyr::select(precinct, Biden_D, Trump_R, vpct, hover)
+```
+
+```{r join the map to votes_data and add jurisdiction border}
+n <- inner_join(h, pvotes, by=(c("NAME" = "precinct")))
+t <- n %>% 
+      group_by(JURISDICTI) %>% 
+      summarize()
+
+
+quans <- quantile(n$vpct,seq(0,1,by=.05))
+quans <- c(0,.45,.55,1)
+scale_range <- c(0,1)
+```
+
+```{r set map parameters}
+opts <- tmap_options(basemaps = c(Canvas = "OpenStreetMap"))
+                     
+tmap_options(opts)
+
+rwb <- colorRampPalette(c("red", "white", "blue"))(256)
+```
+
+```{r switch viewing mode}
+#Visualizations mode changed to view so we can interact
+tmap_mode("view")
+
+```
+
+```{r generate map}
+washtenaw_map <- tm_shape(n) + 
+  tm_polygons(col = "vpct", n=length(5), 
+  id = "hover", 
+  style = "fixed", 
+  breaks = c(0,.2,.45,.5,.55,.8,1), 
+  palette = rwb, 
+  alpha = 0.4, 
+  popup.vars = c("Biden" = "Biden_D", "Trump" = "Trump_R")) +
+  tm_shape(t) + 
+  tm_borders(lwd = 3) +
+  tm_grid()
+
+washtenaw_map
+
+save(washtenaw_extracts, file = "washtenaw_extracts.RData")
+
+
+```

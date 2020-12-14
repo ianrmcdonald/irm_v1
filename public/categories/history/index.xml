@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>History on Mainroad</title>
+    <link>/categories/history/</link>
+    <description>Recent content in History on Mainroad</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <lastBuildDate>Mon, 14 Dec 2020 00:00:00 +0000</lastBuildDate><atom:link href="/categories/history/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Electoral College Day</title>
+      <link>/post/2020-12-14-electoral-college-day/</link>
+      <pubDate>Mon, 14 Dec 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/post/2020-12-14-electoral-college-day/</guid>
+      <description>What will Michigan do?</description>
+    </item>
+    
+  </channel>
+</rss>
