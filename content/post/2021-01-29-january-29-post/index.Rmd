@@ -1,0 +1,75 @@
+---
+title: January 29 Post
+author: Ian McDonald
+date: '2021-01-29'
+slug: []
+categories:
+  - Elections
+tags:
+  - elections
+description: ''
+thumbnail: ''
+---
+
+## Overview
+
+This project is a relatively simple map demonstration using Oregon election precincts and results from the 2020 general election. The map uses tmap's Leaflet implementation and let's users drill into a display that shows address-level two party election result with color coding and vote detail. This example displays percentages of the two party presidential election results.
+
+The challenge is consolidating precinct data that isn't consolidated at the state level by the Oregon secretary of state office. Each county reports its own data at the precinct level, and consolidated map files are hard to find.
+
+## Libraries
+
+This list and sequence should be cleaned up. I'm using the easypackages function *libraries*.
+
+```{r Libraries, message=FALSE, include=FALSE}
+packages <- c("sf", "raster", "spData", "usmap","spDataLarge", "leaflet", "rgdal", "RColorBrewer", "tmap", "tmaptools", "tidyverse", "kableExtra")
+
+library(easypackages)
+
+libraries(packages)
+```
+
+## Addresses for input
+
+This chunk can produce an address marker using the geocode\_OSM function from tmap. An example is shown here. In the next version this will use a text input for Shiny.
+
+```{r Address for input, include=FALSE}
+address_input <- c("2083 NW Johnson St., Portland OR 97209")
+
+address_raw <- geocode_OSM(address_input)
+
+address <- tibble(
+    place=c(address_input),
+    longitude=address_raw$coords["x"],
+    latitude=address_raw$coords["y"])
+
+address_sf <- st_as_sf(address, coords = c("longitude", "latitude"), 
+                       crs = "NAD83", agr = "constant")
+
+```
+
+## Shapefiles and sf objects
+
+Easiest to find old fashioned shapefiles with all the headaches described by Lovelace. I read them as sf objects using *st\_read* function. In this case, I combine an Oregon shapefile for counties with Clark County in Washington, included because Clark County is part of the Portland Metro area.
+
+### County Shapefiles
+
+I added labels from the USMAP fips lookup. Is there a better lookup table provided by the Census bureau from tidycensus?
+
+Notice that I transform the sf objects into a coordinate reference system of NAD83, although they appear to have been read with that CRS. The bind\_rows function doesn't appear to work otherwise.
+
+I need to add a state boundary, unless Oregon decides to annex Clark Countyk WA.
+
+[Need to add a section with sources for all data and shapefiles]
+
+Oregon boundaries from <https://opendata.imspdx.org/dataset/november-2018-election-oregon-results-by-precinct>
+
+```{r County shapefiles, echo=TRUE}
+fpreface <- "/Users/irm16/Dropbox/Blogdown Sites/irm_v1/"
+a <- st_read(str_c(fpreface, "shapefiles/oregon_counties/counties.shp"))
+tmap_mode("view")
+tm_shape(a) + tm_polygons()
+```
+
+
+
