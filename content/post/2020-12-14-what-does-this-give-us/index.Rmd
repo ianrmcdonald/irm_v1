@@ -198,6 +198,8 @@ tmap_mode("view")
 ```
 
 ```{r generate map}
+
+
 washtenaw_map <- tm_shape(n) + 
   tm_polygons(col = "vpct", n=length(5), 
   id = "hover", 
@@ -208,7 +210,8 @@ washtenaw_map <- tm_shape(n) +
   popup.vars = c("Biden" = "Biden_D", "Trump" = "Trump_R")) +
   tm_shape(t) + 
   tm_borders(lwd = 3) +
-  tm_grid()
+  tm_grid() +
+  tm_basemap("OpenStreeMap")
 
 washtenaw_map
 
