@@ -1,0 +1,12 @@
+---
+title: Oregon Precincts
+author: Ian McDonald
+date: '2021-01-28'
+slug: []
+categories: []
+tags: []
+description: ''
+thumbnail: ''
+---
+
+Let's hope it all goes.  This is after the big html
