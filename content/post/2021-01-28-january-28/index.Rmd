@@ -1,0 +1,12 @@
+---
+title: January 28
+author: Ian McDonald
+date: '2021-01-28'
+slug: []
+categories: []
+tags: []
+description: ''
+thumbnail: ''
+---
+
+Why does this work?
