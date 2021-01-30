@@ -1,5 +1,5 @@
 baseurl: /
-title: Mainroad
+title: Ian McDonald
 languageCode: en-us
 paginate: '10'
 theme: Mainroad
@@ -7,14 +7,13 @@ disqusShortname: ''
 googleAnalytics: ''
 Author:
   avatar: img/avatar.png
-  bio: John Doe's true identity is unknown. Maybe he is a successful blogger or writer.
-    Nobody knows it.
-  name: John Doe
+  bio: Ian has done a lot of stuff
+  name: Ian McDonald
 Params:
   authorbox: yes
-  description: John Doe's Personal blog about everything
+  description: Ian McDonald's all purpose website
   logo:
-    subtitle: Just another site
+    subtitle: Politics and movies, movies and politics
   opengraph: yes
   pager: yes
   post_meta:
@@ -30,6 +29,8 @@ Params:
       - recent
       - categories
       - taglist
+  style:
+    vars: "#1d5f94"
   twitter_cards: no
   widgets:
     recent_num: 5
