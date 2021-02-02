@@ -8,7 +8,7 @@ googleAnalytics: ''
 Author:
   avatar: img/avatar.png
   bio: Ian has done a lot of stuff
-  name: Ian McDonald
+  name: "Ian McDonald"
 Params:
   authorbox: yes
   description: Ian McDonald's all purpose website
